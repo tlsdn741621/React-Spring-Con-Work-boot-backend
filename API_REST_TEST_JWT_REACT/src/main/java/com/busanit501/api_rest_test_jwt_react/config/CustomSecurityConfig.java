@@ -2,7 +2,10 @@ package com.busanit501.api_rest_test_jwt_react.config;
 
 import com.busanit501.api_rest_test_jwt_react.security.APIUserDetailsService;
 import com.busanit501.api_rest_test_jwt_react.security.filter.APILoginFilter;
+import com.busanit501.api_rest_test_jwt_react.security.filter.RefreshTokenFilter;
+import com.busanit501.api_rest_test_jwt_react.security.filter.TokenCheckFilter;
 import com.busanit501.api_rest_test_jwt_react.security.handler.APILoginSuccessHandler;
+import com.busanit501.api_rest_test_jwt_react.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
@@ -19,6 +22,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
@@ -34,7 +39,7 @@ import java.util.Arrays;
 public class CustomSecurityConfig {
     //추가 1-1
     private final APIUserDetailsService apiUserDetailsService;
-//    private final JWTUtil jwtUtil;
+    private final JWTUtil jwtUtil;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -80,8 +85,8 @@ public class CustomSecurityConfig {
         apiLoginFilter.setAuthenticationManager(authenticationManager);
 
         // APILoginSuccessHandler 생성: 인증 성공 후 처리 로직을 담당
-//        APILoginSuccessHandler successHandler = new APILoginSuccessHandler(jwtUtil);
-        APILoginSuccessHandler successHandler = new APILoginSuccessHandler();
+        APILoginSuccessHandler successHandler = new APILoginSuccessHandler(jwtUtil);
+//        APILoginSuccessHandler successHandler = new APILoginSuccessHandler();
 
 // SuccessHandler 설정: 로그인 성공 시 APILoginSuccessHandler가 호출되도록 설정
         apiLoginFilter.setAuthenticationSuccessHandler(successHandler);
@@ -90,41 +95,41 @@ public class CustomSecurityConfig {
         http.addFilterBefore(apiLoginFilter, UsernamePasswordAuthenticationFilter.class);
 
         // /api 경로에 대해 TokenCheckFilter 적용
-//        http.addFilterBefore(
-//                tokenCheckFilter(jwtUtil,apiUserDetailsService),
-//                UsernamePasswordAuthenticationFilter.class
-//        );
+        http.addFilterBefore(
+                tokenCheckFilter(jwtUtil,apiUserDetailsService),
+                UsernamePasswordAuthenticationFilter.class
+        );
 
         // RefreshTokenFilter를 TokenCheckFilter 이전에 등록
-//        http.addFilterBefore(
-//                new RefreshTokenFilter("/refreshToken", jwtUtil),
-//                TokenCheckFilter.class
-//        );
+        http.addFilterBefore(
+                new RefreshTokenFilter("/refreshToken", jwtUtil),
+                TokenCheckFilter.class
+        );
         //cors 정책 설정
-//        http.cors(httpSecurityCorsConfigurer ->
-//                httpSecurityCorsConfigurer.configurationSource(corsConfigurationSource())
-//        );
+        http.cors(httpSecurityCorsConfigurer ->
+                httpSecurityCorsConfigurer.configurationSource(corsConfigurationSource())
+        );
         http.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
 
-//    private TokenCheckFilter tokenCheckFilter(JWTUtil jwtUtil, APIUserDetailsService apiUserDetailsService){
-//        return new TokenCheckFilter(apiUserDetailsService, jwtUtil);
-//    }
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration configuration = new CorsConfiguration();
+    private TokenCheckFilter tokenCheckFilter(JWTUtil jwtUtil, APIUserDetailsService apiUserDetailsService){
+        return new TokenCheckFilter(apiUserDetailsService, jwtUtil);
+    }
+    //    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
 
-    // 모두 허용 , 리액트 예, Nginx, http://localhost:80
-//        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-//        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:80"));
-//        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET", "POST", "PUT", "DELETE"));
-//        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
-//        configuration.setAllowCredentials(true);
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", configuration);
-//        return source;
-//    }
+        // 모두 허용 , 리액트 예, Nginx, http://localhost:80
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+//        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:80","http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 }
