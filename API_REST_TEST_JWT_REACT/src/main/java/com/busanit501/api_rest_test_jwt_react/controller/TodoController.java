@@ -1,8 +1,6 @@
 package com.busanit501.api_rest_test_jwt_react.controller;
 
-import com.busanit501.api_rest_test_jwt_react.dto.PageRequestDTO;
-import com.busanit501.api_rest_test_jwt_react.dto.PageResponseDTO;
-import com.busanit501.api_rest_test_jwt_react.dto.TodoDTO;
+import com.busanit501.api_rest_test_jwt_react.dto.*;
 import com.busanit501.api_rest_test_jwt_react.service.TodoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -37,6 +35,16 @@ public class TodoController {
     @GetMapping(value = "/list", produces = MediaType.APPLICATION_JSON_VALUE)
     public PageResponseDTO<TodoDTO> list(PageRequestDTO pageRequestDTO) {
         return todoService.list(pageRequestDTO);
+    }
+
+    @GetMapping(value = "/list2", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CursorPageResponseDTO<TodoDTO> list2(CursorPageRequestDTO pageRequestDTO) {
+        log.info("Received list cursor: {}", pageRequestDTO.getCursor());
+        // ✅ cursor가 null일 때 첫 번째 데이터부터 조회하도록 처리
+//        Long cursorValue = (cursor == null) ? todoService.getMaxTno() : cursor;
+        CursorPageResponseDTO<TodoDTO> result = todoService.list2(pageRequestDTO);
+        log.info("Received list cursor result: {}", result);
+        return result;
     }
 
     @DeleteMapping(value = "/{tno}")
